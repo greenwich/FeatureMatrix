@@ -45,7 +45,6 @@ class MessagesFeatureMatrixBuilder(object):
                 self._message_words[i].setdefault(word,0)
                 self._message_words[i][word] += 1
             i += 1
-        pass
 
     def get_matrix(self):
         vector = []
