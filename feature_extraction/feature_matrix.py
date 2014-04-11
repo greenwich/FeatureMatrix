@@ -1,56 +1,62 @@
 __author__ = 'Alexey'
 
-class MessagesFeatureMatrixBuilder(object):
+import numpy
+
+def cost(a, b):
     """
-    Class builds Feature Matrix
-    >>> from minimock import mock, Mock
-    >>> from messages import Message
-    >>> message1 = Message()
-    >>> message1.set_text("Operator Give me the number for 911")
-    >>> message1.set_author("Homer")
-    >>> message2 = Message()
-    >>> message2.set_text("Operator is a motion short film")
-    >>> message2.set_author("Internet")
-    >>> messages = [message1, message2]
-    >>> mock = Mock('Messages()')
-    >>> mock.get = lambda : messages
+    cost function - Euclidean distance between A and B matrices
 
-    >>> f = MessagesFeatureMatrixBuilder()
-    >>> f.count_words(mock)
-    >>> m = f.get_matrix()
-
-    >>> m1 = m[1]
-    >>> m1.sort()
-    >>> m1
-    ['film', 'give', 'motion', 'number', 'operator', 'short']
-
-    >>> m2 = m[0][1]
-    >>> m2.sort()
-    >>> m2
-    [0, 0, 1, 1, 1, 1]
+    >>> cost(numpy.matrix([1,1]), numpy.matrix([2,2]))
+    2
+    >>> cost(numpy.matrix([1,1]), numpy.matrix([1,1]))
+    0
     """
-    def __init__(self):
-        self._all_words = {}
-        self._message_words = []
-        self._message_owners = []
+    dif = 0
+    for i in range(numpy.shape(a)[0]):
+        for j in range(numpy.shape(b)[1]):
+            dif += pow(a[i,j] - b[i,j], 2)
+    return dif
 
-    def count_words(self, messages):
-        i = 0
-        for message in messages.get():
-            self._message_words.append({})
-            self._message_owners.append(message.get_author())
-            for word in message.get_words():
-                self._all_words.setdefault(word, 0)
-                self._all_words[word] += 1
-                self._message_words[i].setdefault(word,0)
-                self._message_words[i][word] += 1
-            i += 1
+class FeatureMatrixBuilder(object):
+    """
+    Calculates feature matrix V = WH
+
+    >>> matrix = numpy.matrix([[22, 28], [49, 64]])
+    >>> fm = FeatureMatrixBuilder(matrix, 1, 100)
+    >>> w, h = fm.get_matrix()
+    >>> w * h
+
+    """
+    def __init__(self, messages_matrix, features_number = 10, iterations = 50):
+        self._v = messages_matrix
+        self._dimension1 = numpy.shape(self._v)[0]
+        self._dimension2 = numpy.shape(self._v)[1]
+        self._features_number = features_number
+        self._iterations = iterations
 
     def get_matrix(self):
-        vector = []
-        for word in self._all_words.keys():
-            vector.append(word)
+        w = numpy.matrix([[numpy.random.random() for j in range(self._features_number)]
+                          for i in range(self._dimension1)])
+        h = numpy.matrix([[numpy.random.random() for i in range(self._dimension2)]
+                          for i in range(self._features_number)])
 
-        return [[(word in w and w[word] or 0) for word in vector] for w in self._message_words], vector
+        for i in range (self._iterations):
+            wh = w * h
 
+            cost_result = cost(self._v, wh)
+
+            if cost_result == 0:
+                break
+
+            hn = numpy.transpose(w) * self._v
+            hd = numpy.transpose(w) * w * h
+
+            h = numpy.matrix(numpy.array(h) * numpy.array(hn) / numpy.array(hd))
+
+            wn = self._v * numpy.transpose(h)
+            wd = w * h * numpy.transpose(h)
+
+            w = numpy.matrix(numpy.array(w) * numpy.array(wn) / numpy.array(wd))
+
+            return w, h
 
